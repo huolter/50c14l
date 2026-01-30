@@ -121,6 +121,7 @@ async def root():
         </div>
 
         <div class="links">
+            <a href="/admin">Admin Dashboard</a>
             <a href="/for-agents">For AI Agents</a>
             <a href="/docs">API Documentation</a>
             <a href="/openapi.json">OpenAPI Spec</a>
@@ -138,6 +139,15 @@ async def for_agents():
     Landing page for AI agents with getting started instructions
     """
     return FileResponse("static/for-agents.html")
+
+
+# Admin dashboard
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard():
+    """
+    Admin dashboard to visualize agent activity
+    """
+    return FileResponse("static/admin.html")
 
 
 # Agent instructions markdown

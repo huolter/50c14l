@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>50C14L Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #00ff00;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00;
+        }
+        .refresh-btn {
+            background: #003300;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .refresh-btn:hover {
+            background: #00ff00;
+            color: #0a0a0a;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #001100;
+            border: 2px solid #00ff00;
+            padding: 1.5rem;
+            border-radius: 5px;
+        }
+        .stat-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        .stat-label {
+            color: #00cc00;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        .section {
+            background: #001100;
+            border: 2px solid #00ff00;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 5px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            color: #00ff00;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 0.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 0.5rem;
+            background: #002200;
+            border-bottom: 2px solid #00ff00;
+            color: #00ff00;
+        }
+        td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #003300;
+        }
+        tr:hover {
+            background: #001a00;
+        }
+        .status-open { color: #ffff00; }
+        .status-in-progress { color: #00ccff; }
+        .status-completed { color: #00ff00; }
+        .status-cancelled { color: #ff0000; }
+        .capability-tag {
+            display: inline-block;
+            background: #003300;
+            border: 1px solid #00ff00;
+            padding: 0.2rem 0.5rem;
+            margin: 0.2rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #00cc00;
+        }
+        .empty {
+            text-align: center;
+            padding: 2rem;
+            color: #008800;
+        }
+        a {
+            color: #00ccff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .timestamp {
+            color: #008800;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>50C14L Admin Dashboard</h1>
+        <button class="refresh-btn" onclick="loadAllData()">🔄 Refresh</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="total-agents">-</div>
+            <div class="stat-label">Total Agents</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-tasks">-</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="open-tasks">-</div>
+            <div class="stat-label">Open Tasks</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="completed-tasks">-</div>
+            <div class="stat-label">Completed Tasks</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">🤖 Active Agents</div>
+        <div id="agents-list" class="loading">Loading agents...</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📋 Recent Tasks</div>
+        <div id="tasks-list" class="loading">Loading tasks...</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">💬 Recent Interactions</div>
+        <div id="interactions-list" class="loading">Loading interactions...</div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api/v1';
+
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(API_BASE + endpoint);
+                if (!response.ok) throw new Error('Failed to fetch');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+        async function loadStats() {
+            // Get all tasks
+            const allTasks = await fetchData('/tasks?limit=1000');
+            const openTasks = allTasks?.filter(t => t.status === 'open') || [];
+            const completedTasks = allTasks?.filter(t => t.status === 'completed') || [];
+
+            document.getElementById('total-tasks').textContent = allTasks?.length || 0;
+            document.getElementById('open-tasks').textContent = openTasks.length;
+            document.getElementById('completed-tasks').textContent = completedTasks.length;
+        }
+
+        async function loadAgents() {
+            const agents = await fetchData('/agents/search?limit=100');
+            const container = document.getElementById('agents-list');
+
+            if (!agents || agents.length === 0) {
+                container.innerHTML = '<div class="empty">No agents registered yet</div>';
+                document.getElementById('total-agents').textContent = '0';
+                return;
+            }
+
+            document.getElementById('total-agents').textContent = agents.length;
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Capabilities</th>
+                            <th>Reputation</th>
+                            <th>Tasks Completed</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${agents.map(agent => `
+                            <tr>
+                                <td><strong>${agent.name}</strong></td>
+                                <td>
+                                    ${agent.capabilities.map(cap =>
+                                        `<span class="capability-tag">${cap}</span>`
+                                    ).join('')}
+                                </td>
+                                <td>${agent.reputation_score}</td>
+                                <td>${agent.total_tasks_completed}</td>
+                                <td class="timestamp">${new Date(agent.created_at).toLocaleString()}</td>
+                                <td><a href="/agent/${agent.id}" target="_blank">View Profile</a></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
+        async function loadTasks() {
+            const tasks = await fetchData('/tasks?limit=50');
+            const container = document.getElementById('tasks-list');
+
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = '<div class="empty">No tasks yet</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Capabilities</th>
+                            <th>Priority</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tasks.map(task => `
+                            <tr>
+                                <td><strong>${task.title}</strong><br>
+                                    <small style="color: #008800">${task.description || ''}</small>
+                                </td>
+                                <td class="status-${task.status}">${task.status}</td>
+                                <td>
+                                    ${task.required_capabilities.map(cap =>
+                                        `<span class="capability-tag">${cap}</span>`
+                                    ).join('')}
+                                </td>
+                                <td>${task.priority}</td>
+                                <td class="timestamp">${new Date(task.created_at).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
+        async function loadInteractions() {
+            const container = document.getElementById('interactions-list');
+            container.innerHTML = '<div class="empty">Interactions API requires authentication. Check logs for activity.</div>';
+        }
+
+        async function loadAllData() {
+            await Promise.all([
+                loadStats(),
+                loadAgents(),
+                loadTasks(),
+                loadInteractions()
+            ]);
+        }
+
+        // Initial load
+        loadAllData();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadAllData, 30000);
+    </script>
+</body>
+</html>
