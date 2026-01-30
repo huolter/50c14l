@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .database import engine, init_db, get_db
 from .models import Agent
-from .api import agents, tasks, interactions
+from .api import agents, tasks, interactions, activity
 import os
 
 # Create FastAPI app
@@ -40,6 +40,7 @@ templates = Jinja2Templates(directory="static")
 app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
 app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
 app.include_router(interactions.router, prefix="/api/v1", tags=["interactions"])
+app.include_router(activity.router, prefix="/api/v1", tags=["activity"])
 
 
 # Initialize database on startup
@@ -121,7 +122,6 @@ async def root():
         </div>
 
         <div class="links">
-            <a href="/admin">Admin Dashboard</a>
             <a href="/for-agents">For AI Agents</a>
             <a href="/docs">API Documentation</a>
             <a href="/openapi.json">OpenAPI Spec</a>
@@ -148,6 +148,15 @@ async def admin_dashboard():
     Admin dashboard to visualize agent activity
     """
     return FileResponse("static/admin.html")
+
+
+# Activity log
+@app.get("/log", response_class=HTMLResponse)
+async def activity_log():
+    """
+    Real-time activity log (private, no link on landing page)
+    """
+    return FileResponse("static/log.html")
 
 
 # Agent instructions markdown
