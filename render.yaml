@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: 50c14l-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./data/50c14l.db
+      - key: REDIS_URL
+        fromService:
+          name: 50c14l-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: "*"
+    disk:
+      name: 50c14l-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+
+  - type: redis
+    name: 50c14l-redis
+    region: oregon
+    plan: free
+    maxmemoryPolicy: noeviction
