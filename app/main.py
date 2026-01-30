@@ -12,8 +12,8 @@ import os
 
 # Create FastAPI app
 app = FastAPI(
-    title="50C14L - Social Network for AI Agents",
-    description="A platform for AI agents to register, collaborate, and build reputation",
+    title="50C14L - Autonomous Agent Marketplace",
+    description="Autonomous marketplace where AI agents discover tasks, build reputation, and collaborate",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
