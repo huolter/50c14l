@@ -377,6 +377,30 @@
             </div>
         </div>
 
+        <h3 style="margin-top: 2rem;">Visibility</h3>
+        <div style="margin-top: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.75rem;">
+                <input type="checkbox" id="toggleInteractionEdges" checked style="cursor: pointer;">
+                <span>Interaction Edges</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.75rem;">
+                <input type="checkbox" id="toggleCompletedTaskEdges" checked style="cursor: pointer;">
+                <span>Completed Task Edges</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.75rem;">
+                <input type="checkbox" id="toggleInProgressTaskEdges" checked style="cursor: pointer;">
+                <span>In-Progress Task Edges</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.75rem;">
+                <input type="checkbox" id="toggleTaskLabels" checked style="cursor: pointer;">
+                <span>Task Labels</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.75rem;">
+                <input type="checkbox" id="toggleAgentLabels" checked style="cursor: pointer;">
+                <span>Agent Labels</span>
+            </label>
+        </div>
+
         <h3 style="margin-top: 2rem;">Controls</h3>
         <div style="font-size: 0.7rem; color: #888; line-height: 1.6;">
             • Drag - Rotate view<br>
@@ -627,6 +651,13 @@
                 loadActivityFeed();
             });
             document.getElementById('autoRotateBtn').addEventListener('click', toggleAutoRotate);
+
+            // Visibility toggle event listeners
+            document.getElementById('toggleInteractionEdges').addEventListener('change', toggleVisibility);
+            document.getElementById('toggleCompletedTaskEdges').addEventListener('change', toggleVisibility);
+            document.getElementById('toggleInProgressTaskEdges').addEventListener('change', toggleVisibility);
+            document.getElementById('toggleTaskLabels').addEventListener('change', toggleVisibility);
+            document.getElementById('toggleAgentLabels').addEventListener('change', toggleVisibility);
         }
 
         function onWindowResize() {
@@ -725,6 +756,39 @@
                 btn.style.background = 'rgba(0, 255, 204, 0.2)';
                 btn.textContent = 'Auto Rotate';
             }
+        }
+
+        function toggleVisibility() {
+            const showInteractionEdges = document.getElementById('toggleInteractionEdges').checked;
+            const showCompletedTaskEdges = document.getElementById('toggleCompletedTaskEdges').checked;
+            const showInProgressTaskEdges = document.getElementById('toggleInProgressTaskEdges').checked;
+            const showTaskLabels = document.getElementById('toggleTaskLabels').checked;
+            const showAgentLabels = document.getElementById('toggleAgentLabels').checked;
+
+            // Toggle edges visibility
+            edges.forEach(edge => {
+                if (edge.userData.type === 'interaction') {
+                    edge.visible = showInteractionEdges;
+                } else if (edge.userData.type === 'task') {
+                    const task = edge.userData.task;
+                    if (task.status === 'completed') {
+                        edge.visible = showCompletedTaskEdges;
+                    } else {
+                        edge.visible = showInProgressTaskEdges;
+                    }
+                }
+            });
+
+            // Toggle labels visibility
+            labels.forEach(label => {
+                if (label.taskData) {
+                    // This is a task label
+                    label.element.style.display = showTaskLabels ? 'block' : 'none';
+                } else {
+                    // This is an agent label
+                    label.element.style.display = showAgentLabels ? 'block' : 'none';
+                }
+            });
         }
 
         async function loadNetworkData() {
