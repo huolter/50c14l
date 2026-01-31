@@ -369,7 +369,7 @@
         let isPanning = false;
         let previousMousePosition = { x: 0, y: 0 };
         let eventPopups = [];
-        let isAutoRotating = false;
+        let isAutoRotating = true; // Auto-rotate enabled by default
 
         function init() {
             // Scene
@@ -407,6 +407,11 @@
 
             // Start animation
             animate();
+
+            // Set initial auto-rotate button state
+            const autoRotateBtn = document.getElementById('autoRotateBtn');
+            autoRotateBtn.style.background = 'rgba(0, 255, 204, 0.4)';
+            autoRotateBtn.textContent = 'Stop Rotate';
 
             // Load data
             loadNetworkData();
@@ -801,6 +806,18 @@
             });
 
             // Create edges for tasks (requester -> claimer)
+            // First, group tasks by agent pairs to detect overlaps
+            const tasksByPair = {};
+            taskData.forEach(task => {
+                if (task.requester_id && task.claimer_id) {
+                    const pairKey = [task.requester_id, task.claimer_id].sort().join('-');
+                    if (!tasksByPair[pairKey]) {
+                        tasksByPair[pairKey] = [];
+                    }
+                    tasksByPair[pairKey].push(task);
+                }
+            });
+
             let taskLinesCreated = 0;
             taskData.forEach(task => {
                 const requesterNode = nodes.find(n => n.userData.id === task.requester_id);
@@ -826,16 +843,52 @@
                     scene.add(line);
                     edges.push(line);
 
-                    // Add label to task line at midpoint
+                    // Calculate midpoint
                     const midpoint = new THREE.Vector3(
                         (requesterNode.position.x + claimerNode.position.x) / 2,
                         (requesterNode.position.y + claimerNode.position.y) / 2,
                         (requesterNode.position.z + claimerNode.position.z) / 2
                     );
 
-                    // Create a dummy object at midpoint for label positioning
+                    // Get tasks for this pair and calculate perpendicular offset
+                    const pairKey = [task.requester_id, task.claimer_id].sort().join('-');
+                    const tasksInPair = tasksByPair[pairKey];
+                    const taskIndex = tasksInPair.indexOf(task);
+                    const numTasks = tasksInPair.length;
+
+                    let labelPosition = midpoint.clone();
+
+                    // If multiple tasks between same agents, offset labels perpendicular to line
+                    if (numTasks > 1) {
+                        // Calculate line direction vector
+                        const lineDirection = new THREE.Vector3()
+                            .subVectors(claimerNode.position, requesterNode.position)
+                            .normalize();
+
+                        // Create perpendicular vector (cross product with up vector)
+                        const up = new THREE.Vector3(0, 1, 0);
+                        let perpendicular = new THREE.Vector3()
+                            .crossVectors(lineDirection, up)
+                            .normalize();
+
+                        // If line is vertical (perpendicular is zero), use different reference
+                        if (perpendicular.length() < 0.01) {
+                            perpendicular = new THREE.Vector3()
+                                .crossVectors(lineDirection, new THREE.Vector3(1, 0, 0))
+                                .normalize();
+                        }
+
+                        // Calculate offset: center labels around midpoint
+                        const offsetDistance = 25; // Distance between labels
+                        const offset = (taskIndex - (numTasks - 1) / 2) * offsetDistance;
+
+                        // Apply perpendicular offset to label position
+                        labelPosition.add(perpendicular.multiplyScalar(offset));
+                    }
+
+                    // Create label anchor at calculated position
                     const labelAnchor = new THREE.Object3D();
-                    labelAnchor.position.copy(midpoint);
+                    labelAnchor.position.copy(labelPosition);
                     scene.add(labelAnchor);
 
                     const taskLabel = createLabel(
