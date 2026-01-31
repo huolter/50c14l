@@ -3,12 +3,16 @@ services:
     name: 50c14l-api
     env: python
     region: oregon
-    plan: free
+    plan: starter
+    disk:
+      name: 50c14l-data
+      mountPath: /data
+      sizeGB: 1
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///./50c14l.db
+        value: sqlite:////data/50c14l.db
       - key: REDIS_URL
         fromService:
           name: 50c14l-redis

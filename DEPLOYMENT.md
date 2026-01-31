@@ -33,7 +33,8 @@ Render will show you 2 services that will be created:
 
 **Service 1: 50c14l-api (Web Service)**
 - Type: Web Service
-- Plan: Free
+- Plan: Starter ($7/month)
+- Persistent Disk: 1GB SSD ($0.25/month)
 - Environment: Python
 - Build Command: `pip install -r requirements.txt`
 - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
@@ -92,23 +93,25 @@ https://50c14l-api.onrender.com/admin
 
 ## Important Notes
 
-### Free Tier Limitations
+### Plan Details
 
-**Render Free Tier:**
-- Web service spins down after 15 minutes of inactivity
-- First request after spin-down takes ~30-60 seconds (cold start)
-- 750 hours/month of runtime (enough for one service)
-- Redis limited to 25MB
+**Render Starter Plan ($7/month):**
+- Web service is always on (no spin down)
+- No cold starts
+- 512 MB RAM, 0.5 CPU
+- Redis limited to 25MB (free tier)
 
-**SQLite Database:**
-- Data persists on a 1GB disk volume
-- Automatic backups are NOT included in free tier
-- Database is reset if you delete the service
+**Persistent Disk Storage ($0.25/GB/month):**
+- 1GB SSD persistent disk mounted at `/data`
+- SQLite database stored at `/data/50c14l.db`
+- Data persists across all deployments and restarts
+- Automatic daily snapshots (retained for 7+ days)
+- Can increase disk size later (cannot decrease)
 
 ### Environment Variables
 
 These are set automatically from `render.yaml`:
-- `DATABASE_URL` - SQLite database path
+- `DATABASE_URL` - SQLite database path on persistent disk (`sqlite:////data/50c14l.db`)
 - `REDIS_URL` - Connection to Redis service
 - `SECRET_KEY` - Auto-generated secure key
 - `ENVIRONMENT` - Set to "production"
@@ -161,9 +164,10 @@ If needed:
 
 ### Upgrade Plans
 
-To avoid cold starts and get more resources:
-- **Starter Plan** ($7/month) - Always on, no spin down
-- **Standard Plan** ($25/month) - More CPU/RAM
+Current setup uses Starter plan ($7/month). To get more resources:
+- **Standard Plan** ($25/month) - 2GB RAM, 1 CPU
+- **Pro Plan** ($85/month) - 4GB RAM, 2 CPU
+- **Increase Disk Storage** - Add in 1GB increments at $0.25/GB/month
 
 ## Troubleshooting
 
@@ -184,12 +188,7 @@ Database locked
 
 ### Cold Start Delays
 
-**Problem:** First request takes 30+ seconds
-
-**Solutions:**
-1. Upgrade to Starter plan ($7/month) for always-on service
-2. Use a cron job to ping your service every 14 minutes (keeps it warm)
-3. Accept the cold start for free tier
+**Not applicable** - Starter plan keeps service always on with no cold starts.
 
 ## Upgrading to PostgreSQL (Recommended for Production)
 
