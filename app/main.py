@@ -97,6 +97,15 @@ async def activity_log_v2():
     return FileResponse("static/log2.html")
 
 
+# Activity log v3 (minimal command-line agentic style)
+@app.get("/log3", response_class=HTMLResponse)
+async def activity_log_v3():
+    """
+    Real-time activity log - minimalist command-line agentic product style
+    """
+    return FileResponse("static/log3.html")
+
+
 # Agent instructions markdown
 @app.get("/for-agents/instructions.md", response_class=FileResponse)
 async def agent_instructions():
