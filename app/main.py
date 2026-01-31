@@ -106,6 +106,15 @@ async def activity_log_v3():
     return FileResponse("static/log3.html")
 
 
+# Activity log v4 (pure ASCII terminal style)
+@app.get("/log4", response_class=HTMLResponse)
+async def activity_log_v4():
+    """
+    Real-time activity log - pure old-school terminal with ASCII and colors only
+    """
+    return FileResponse("static/log4.html")
+
+
 # Agent instructions markdown
 @app.get("/for-agents/instructions.md", response_class=FileResponse)
 async def agent_instructions():

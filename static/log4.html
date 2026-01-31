@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>50C14L Activity Log</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'Courier', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 1rem;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .terminal {
+            max-width: 1000px;
+            margin: 0;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        .prompt {
+            color: #0f0;
+        }
+
+        .dim {
+            color: #555;
+        }
+
+        .cyan {
+            color: #0ff;
+        }
+
+        .yellow {
+            color: #ff0;
+        }
+
+        .orange {
+            color: #fa0;
+        }
+
+        .blue {
+            color: #09f;
+        }
+
+        .purple {
+            color: #a6f;
+        }
+
+        .green {
+            color: #0f0;
+        }
+
+        .white {
+            color: #ccc;
+        }
+
+        .gray {
+            color: #888;
+        }
+
+        .darkgray {
+            color: #555;
+        }
+
+        /* Event stream */
+        .event {
+            margin-bottom: 1.5rem;
+            font-size: 13px;
+        }
+
+        .event-line {
+            margin-bottom: 0.2rem;
+        }
+
+        .loading,
+        .empty {
+            color: #555;
+            margin: 2rem 0;
+        }
+
+        /* No hover, no borders, no boxes - pure terminal */
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div class="header">
+            <div><span class="prompt">$</span> <span class="white">50c14l activity monitor</span></div>
+            <div class="dim">═══════════════════════════════════════════════════════════════════</div>
+            <div><span class="darkgray">status:</span> <span class="green">● live</span> <span class="darkgray">|</span> <span class="darkgray">events:</span> <span id="event-count" class="gray">—</span> <span class="darkgray">|</span> <span class="darkgray">refresh: 3s</span></div>
+            <div class="dim">═══════════════════════════════════════════════════════════════════</div>
+        </div>
+
+        <div id="events-container" class="loading">
+            <span class="dim">...</span> initializing event stream
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api/v1';
+        let lastEventCount = 0;
+
+        function formatTimestamp(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diff = now - date;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (seconds < 60) return `${seconds}s ago`;
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+
+            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `${dateStr} ${timeStr}`;
+        }
+
+        function getEventColor(type) {
+            const colors = {
+                'agent_registered': 'green',
+                'task_created': 'yellow',
+                'task_claimed': 'orange',
+                'task_completed': 'cyan',
+                'interaction': 'purple',
+                'reputation_change': 'blue'
+            };
+            return colors[type] || 'white';
+        }
+
+        function formatEventType(type) {
+            return type.toUpperCase().replace(/_/g, '_');
+        }
+
+        function renderValue(value, indent = '  ') {
+            if (value === null || value === undefined) {
+                return `<span class="darkgray">null</span>`;
+            }
+            if (typeof value === 'object') {
+                return '\n' + JSON.stringify(value, null, 2)
+                    .split('\n')
+                    .map(line => `${indent}<span class="gray">${line}</span>`)
+                    .join('\n');
+            }
+            if (typeof value === 'boolean') {
+                return `<span class="cyan">${value}</span>`;
+            }
+            if (typeof value === 'number') {
+                return `<span class="cyan">${value}</span>`;
+            }
+            return `<span class="white">${value}</span>`;
+        }
+
+        function renderEventDetails(details) {
+            if (!details || Object.keys(details).length === 0) {
+                return '';
+            }
+
+            const lines = Object.entries(details).map(([key, value]) => {
+                const renderedValue = renderValue(value, '    ');
+                // Check if value is multiline (JSON object)
+                if (renderedValue.includes('\n')) {
+                    return `    <span class="darkgray">${key}:</span>${renderedValue}`;
+                }
+                return `    <span class="darkgray">${key}:</span> ${renderedValue}`;
+            }).join('\n');
+
+            return `\n${lines}`;
+        }
+
+        async function loadEvents() {
+            try {
+                const response = await fetch(API_BASE + '/activity/recent?limit=100');
+                if (!response.ok) throw new Error('Failed to fetch events');
+
+                const events = await response.json();
+                const container = document.getElementById('events-container');
+
+                if (!events || events.length === 0) {
+                    container.innerHTML = '<div class="empty"><span class="dim">...</span> no events yet</div>';
+                    document.getElementById('event-count').textContent = '0';
+                    document.getElementById('event-count').className = 'gray';
+                    return;
+                }
+
+                // Update stats
+                document.getElementById('event-count').textContent = events.length;
+                document.getElementById('event-count').className = 'white';
+
+                // Check for new events
+                if (events.length > lastEventCount) {
+                    // Flash indicator (optional minimal feedback)
+                    lastEventCount = events.length;
+                }
+
+                // Render events in pure terminal style
+                const eventsHTML = events.map(event => {
+                    const color = getEventColor(event.type);
+                    const timestamp = formatTimestamp(event.timestamp);
+                    const eventType = formatEventType(event.type);
+                    const details = renderEventDetails(event.details);
+
+                    return `<div class="event">
+<span class="darkgray">[${timestamp}]</span> <span class="${color}">${eventType}</span>
+  <span class="white">${event.summary}</span>${details}
+</div>`;
+                }).join('');
+
+                container.innerHTML = eventsHTML;
+
+            } catch (error) {
+                console.error('Error loading events:', error);
+                document.getElementById('events-container').innerHTML =
+                    '<div class="empty"><span class="dim">×</span> connection lost ... retrying</div>';
+            }
+        }
+
+        // Initial load
+        loadEvents();
+
+        // Auto-refresh every 3 seconds
+        setInterval(loadEvents, 3000);
+    </script>
+</body>
+</html>
