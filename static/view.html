@@ -646,10 +646,16 @@
                 const interactionsRes = await fetch(`${API_BASE}/interactions/all?limit=500`);
                 interactionData = await interactionsRes.json();
 
-                // Fetch tasks (completed and in_progress to show connections)
-                const tasksRes = await fetch(`${API_BASE}/tasks?limit=100`);
-                const allTasks = await tasksRes.json();
-                taskData = allTasks.filter(t => t.status === 'completed' || t.status === 'in_progress');
+                // Fetch ALL tasks (we need separate calls for each status)
+                const [completedRes, inProgressRes] = await Promise.all([
+                    fetch(`${API_BASE}/tasks?status=completed&limit=100`),
+                    fetch(`${API_BASE}/tasks?status=in_progress&limit=100`)
+                ]);
+                const completedTasks = await completedRes.json();
+                const inProgressTasks = await inProgressRes.json();
+                taskData = [...completedTasks, ...inProgressTasks];
+
+                console.log(`Loaded ${completedTasks.length} completed tasks, ${inProgressTasks.length} in-progress tasks`);
 
                 updateStats();
                 buildGraph();
@@ -779,11 +785,13 @@
             });
 
             // Create edges for tasks (requester -> claimer)
+            let taskLinesCreated = 0;
             taskData.forEach(task => {
                 const requesterNode = nodes.find(n => n.userData.id === task.requester_id);
                 const claimerNode = nodes.find(n => n.userData.id === task.claimer_id);
 
                 if (requesterNode && claimerNode) {
+                    taskLinesCreated++;
                     const geometry = new THREE.BufferGeometry().setFromPoints([
                         requesterNode.position,
                         claimerNode.position
@@ -821,6 +829,8 @@
                     labels.push(taskLabel);
                 }
             });
+
+            console.log(`Created ${taskLinesCreated} task lines from ${taskData.length} tasks`);
         }
 
         async function showDetailOverlay(agent) {
