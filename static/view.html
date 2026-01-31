@@ -736,21 +736,9 @@
                 });
                 const newAgentData = await agentsRes.json();
 
-                // Check for new agents and mark them for blinking
-                newAgentData.forEach(agent => {
-                    if (!knownAgentIds.has(agent.id)) {
-                        console.log('New agent registered:', agent.name);
-                        // Mark as new agent (will blink when node is created)
-                        newAgentNodes.set(agent.id, Date.now());
-                        knownAgentIds.add(agent.id);
-                    }
-                });
-
-                agentData = newAgentData;
-
                 // Fetch all interactions directly from interactions endpoint
                 const interactionsRes = await fetch(`${API_BASE}/interactions/all?limit=500`);
-                interactionData = await interactionsRes.json();
+                const newInteractionData = await interactionsRes.json();
 
                 // Fetch ALL tasks (we need separate calls for each status)
                 const [completedRes, inProgressRes] = await Promise.all([
@@ -759,12 +747,45 @@
                 ]);
                 const completedTasks = await completedRes.json();
                 const inProgressTasks = await inProgressRes.json();
-                taskData = [...completedTasks, ...inProgressTasks];
+                const newTaskData = [...completedTasks, ...inProgressTasks];
 
                 console.log(`Loaded ${completedTasks.length} completed tasks, ${inProgressTasks.length} in-progress tasks`);
 
+                // Check if data actually changed (only rebuild if necessary)
+                let dataChanged = false;
+
+                // Check for new agents
+                newAgentData.forEach(agent => {
+                    if (!knownAgentIds.has(agent.id)) {
+                        console.log('New agent registered:', agent.name);
+                        newAgentNodes.set(agent.id, Date.now());
+                        knownAgentIds.add(agent.id);
+                        dataChanged = true;
+                    }
+                });
+
+                // Check if agent count changed or task count changed or interaction count changed
+                if (agentData.length !== newAgentData.length ||
+                    taskData.length !== newTaskData.length ||
+                    interactionData.length !== newInteractionData.length) {
+                    dataChanged = true;
+                }
+
+                // Update data
+                agentData = newAgentData;
+                interactionData = newInteractionData;
+                taskData = newTaskData;
+
+                // Always update stats
                 updateStats();
-                buildGraph();
+
+                // Only rebuild graph if data changed
+                if (dataChanged) {
+                    console.log('Data changed, rebuilding graph...');
+                    buildGraph();
+                } else {
+                    console.log('No data changes, skipping rebuild');
+                }
 
                 document.getElementById('loading').style.display = 'none';
             } catch (error) {
