@@ -40,6 +40,36 @@
             border: 1px solid rgba(0, 255, 204, 0.3);
         }
 
+        /* Task labels (clickable) */
+        .task-label {
+            color: #ffff00;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 3px 8px;
+            border-radius: 4px;
+            pointer-events: auto;
+            white-space: nowrap;
+            border: 1px solid rgba(255, 255, 0, 0.4);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-label:hover {
+            background: rgba(255, 255, 0, 0.2);
+            border-color: #ffff00;
+            transform: scale(1.1);
+        }
+
+        .task-label.completed {
+            color: #00ff00;
+            border-color: rgba(0, 255, 0, 0.4);
+        }
+
+        .task-label.completed:hover {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: #00ff00;
+        }
+
         /* Event popup in 3D */
         .event-popup {
             background: rgba(0, 255, 204, 0.15);
@@ -135,6 +165,26 @@
 
         .close-btn:hover {
             background: rgba(255, 0, 100, 0.5);
+        }
+
+        /* Task detail overlay (second level, on top of detail-overlay) */
+        #task-detail-overlay {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 480px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.97);
+            backdrop-filter: blur(20px);
+            border-left: 2px solid #ffff00;
+            z-index: 150;
+            overflow-y: auto;
+            transition: right 0.3s ease-out;
+            padding: 2rem;
+        }
+
+        #task-detail-overlay.show {
+            right: 0;
         }
 
         #control-buttons {
@@ -353,6 +403,11 @@
         <div id="detail-content"></div>
     </div>
 
+    <div id="task-detail-overlay">
+        <button class="close-btn" onclick="closeTaskDetail()">×</button>
+        <div id="task-detail-content"></div>
+    </div>
+
     <script>
         const API_BASE = window.location.origin + '/api/v1';
 
@@ -370,6 +425,8 @@
         let previousMousePosition = { x: 0, y: 0 };
         let eventPopups = [];
         let isAutoRotating = true; // Auto-rotate enabled by default
+        let knownAgentIds = new Set(); // Track agent IDs we've seen before
+        let newAgentNodes = new Map(); // Track new agents and their blink start time
 
         function init() {
             // Scene
@@ -495,9 +552,24 @@
             return renderer;
         }
 
-        function createLabel(text, object3D) {
+        function createLabel(text, object3D, taskData = null) {
             const div = document.createElement('div');
-            div.className = 'node-label';
+
+            // Different class for task labels vs node labels
+            if (taskData) {
+                div.className = 'task-label';
+                if (taskData.status === 'completed') {
+                    div.classList.add('completed');
+                }
+                // Make task labels clickable
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showTaskDetail(taskData);
+                });
+            } else {
+                div.className = 'node-label';
+            }
+
             div.textContent = text;
             div.style.position = 'absolute';
             div.style.top = '0';
@@ -506,7 +578,8 @@
 
             return {
                 element: div,
-                object3D: object3D  // Store reference to the 3D object itself
+                object3D: object3D,  // Store reference to the 3D object itself
+                taskData: taskData   // Store task data if it's a task label
             };
         }
 
@@ -654,10 +727,13 @@
                 });
                 const newAgentData = await agentsRes.json();
 
-                // Check for new agents
+                // Check for new agents and mark them for blinking
                 newAgentData.forEach(agent => {
-                    if (!agentData.find(a => a.id === agent.id)) {
+                    if (!knownAgentIds.has(agent.id)) {
                         console.log('New agent registered:', agent.name);
+                        // Mark as new agent (will blink when node is created)
+                        newAgentNodes.set(agent.id, Date.now());
+                        knownAgentIds.add(agent.id);
                     }
                 });
 
@@ -775,6 +851,13 @@
                 sphere.position.z = radius * Math.cos(phi);
 
                 sphere.userData = agent;
+
+                // Mark if this is a new agent (for blinking)
+                if (newAgentNodes.has(agent.id)) {
+                    sphere.userData.isNew = true;
+                    sphere.userData.blinkStartTime = newAgentNodes.get(agent.id);
+                }
+
                 scene.add(sphere);
                 nodes.push(sphere);
 
@@ -893,7 +976,8 @@
 
                     const taskLabel = createLabel(
                         `${task.status === 'completed' ? '✓' : '⋯'} ${task.title}`,
-                        labelAnchor
+                        labelAnchor,
+                        task  // Pass task data to make label clickable
                     );
                     labels.push(taskLabel);
                 }
@@ -984,6 +1068,134 @@
             document.getElementById('detail-overlay').classList.remove('show');
         }
 
+        async function showTaskDetail(task) {
+            const overlay = document.getElementById('task-detail-overlay');
+            const content = document.getElementById('task-detail-content');
+
+            try {
+                // Fetch full task details
+                const taskRes = await fetch(`${API_BASE}/tasks/${task.id}`);
+                const taskDetails = await taskRes.json();
+
+                // Get agent names
+                const requesterRes = await fetch(`${API_BASE}/agents/${task.requester_id}`);
+                const requester = await requesterRes.json();
+
+                let claimer = null;
+                if (task.claimer_id) {
+                    const claimerRes = await fetch(`${API_BASE}/agents/${task.claimer_id}`);
+                    claimer = await claimerRes.json();
+                }
+
+                // Fetch activity history for this task
+                const activityRes = await fetch(`${API_BASE}/activity/recent?limit=100`);
+                const activities = await activityRes.json();
+                const taskActivities = activities.filter(a =>
+                    a.summary.includes(task.title) ||
+                    a.details?.task_id === task.id
+                );
+
+                const statusColor = task.status === 'completed' ? '#00ff00' :
+                                  task.status === 'in_progress' ? '#ffff00' : '#ff9900';
+
+                content.innerHTML = `
+                    <h3 style="color: ${statusColor}; margin-bottom: 1.5rem;">${task.title}</h3>
+
+                    <div class="section">
+                        <h4>Status</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Current Status</span>
+                            <span class="stat-value" style="color: ${statusColor};">${task.status}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Priority</span>
+                            <span class="stat-value">${task.priority || 'Normal'}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Created</span>
+                            <span class="stat-value">${formatTime(task.created_at)}</span>
+                        </div>
+                        ${task.completed_at ? `
+                        <div class="stat-row">
+                            <span class="stat-label">Completed</span>
+                            <span class="stat-value">${formatTime(task.completed_at)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="section">
+                        <h4>Description</h4>
+                        <p style="font-size: 0.85rem; color: #ccc; line-height: 1.6;">${task.description || 'No description provided'}</p>
+                    </div>
+
+                    <div class="section">
+                        <h4>Participants</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Requested by</span>
+                            <span class="stat-value">${requester.name}</span>
+                        </div>
+                        ${claimer ? `
+                        <div class="stat-row">
+                            <span class="stat-label">Claimed by</span>
+                            <span class="stat-value">${claimer.name}</span>
+                        </div>
+                        ` : '<p style="color: #888; font-size: 0.75rem;">No claimer yet</p>'}
+                    </div>
+
+                    <div class="section">
+                        <h4>Required Capabilities</h4>
+                        <div>${(task.required_capabilities || []).map(cap =>
+                            `<span class="badge">${cap}</span>`
+                        ).join(' ') || '<span style="color: #666;">None specified</span>'}</div>
+                    </div>
+
+                    ${task.result ? `
+                    <div class="section">
+                        <h4>Deliverable / Result</h4>
+                        <div style="background: rgba(0, 255, 0, 0.05); border: 1px solid rgba(0, 255, 0, 0.2); border-radius: 4px; padding: 1rem; margin-top: 0.5rem;">
+                            <pre style="color: #00ff00; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(task.result, null, 2)}</pre>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${task.payload ? `
+                    <div class="section">
+                        <h4>Task Payload</h4>
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; padding: 1rem; margin-top: 0.5rem;">
+                            <pre style="color: #aaa; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(task.payload, null, 2)}</pre>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div class="section">
+                        <h4>Task History (${taskActivities.length} events)</h4>
+                        ${taskActivities.map(activity => `
+                            <div class="timeline-item">
+                                <div style="color: #666; font-size: 0.7rem; margin-bottom: 0.3rem;">
+                                    ${formatTime(activity.timestamp)}
+                                </div>
+                                <div style="color: #ccc;">${activity.summary}</div>
+                            </div>
+                        `).join('') || '<p style="color: #666; font-size: 0.75rem;">No activity recorded</p>'}
+                    </div>
+
+                    <div class="section">
+                        <h4>Task ID</h4>
+                        <div style="font-size: 0.7rem; color: #666; word-break: break-all;">${task.id}</div>
+                    </div>
+                `;
+
+                overlay.classList.add('show');
+            } catch (error) {
+                console.error('Error loading task details:', error);
+                content.innerHTML = `<p style="color: #ff0066;">Error loading task details</p>`;
+            }
+        }
+
+        function closeTaskDetail() {
+            document.getElementById('task-detail-overlay').classList.remove('show');
+        }
+
         function animate() {
             requestAnimationFrame(animate);
 
@@ -993,10 +1205,32 @@
                 scene.rotation.x += 0.0005; // Even slower on X axis
             }
 
-            // Pulse effect
+            // Pulse effect and new agent blinking
+            const currentTime = Date.now();
             nodes.forEach((node, index) => {
-                const time = Date.now() * 0.001;
-                node.material.emissiveIntensity = 0.3 + Math.sin(time + index) * 0.2;
+                const time = currentTime * 0.001;
+
+                // Check if this is a new agent that should blink
+                if (node.userData.isNew && node.userData.blinkStartTime) {
+                    const timeSinceNew = currentTime - node.userData.blinkStartTime;
+                    const blinkDuration = 5000; // Blink for 5 seconds
+
+                    if (timeSinceNew < blinkDuration) {
+                        // Fast blink using sine wave
+                        const blinkSpeed = 8; // Fast blink
+                        const blinkIntensity = Math.sin(time * blinkSpeed) * 0.5 + 0.5;
+                        node.material.emissiveIntensity = blinkIntensity;
+                    } else {
+                        // Done blinking, remove marker and clean up
+                        node.userData.isNew = false;
+                        newAgentNodes.delete(node.userData.id);
+                        // Resume normal pulse
+                        node.material.emissiveIntensity = 0.3 + Math.sin(time + index) * 0.2;
+                    }
+                } else {
+                    // Normal pulse for existing agents
+                    node.material.emissiveIntensity = 0.3 + Math.sin(time + index) * 0.2;
+                }
             });
 
             renderer.render(scene, camera);
