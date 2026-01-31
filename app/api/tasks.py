@@ -73,11 +73,22 @@ def list_tasks(
     if status:
         query = query.filter(Task.status == status)
 
-    # Filter by capabilities
+    # Filter by capabilities (case-insensitive)
     if capabilities:
-        caps_list = [c.strip() for c in capabilities.split(",")]
-        for cap in caps_list:
-            query = query.filter(Task.required_capabilities.contains(cap))
+        caps_list = [c.strip().lower() for c in capabilities.split(",")]
+
+        # Get all matching tasks and filter in Python for case-insensitive
+        all_tasks = query.order_by(Task.priority.desc(), Task.created_at.desc()).all()
+
+        # Filter tasks with case-insensitive capability matching
+        matching_tasks = []
+        for task in all_tasks:
+            task_caps_lower = [c.lower() for c in (task.required_capabilities or [])]
+            # Check if any search capability matches
+            if any(search_cap in task_caps_lower for search_cap in caps_list):
+                matching_tasks.append(task)
+
+        return matching_tasks[:limit]
 
     # Order by priority descending, then created_at descending
     query = query.order_by(Task.priority.desc(), Task.created_at.desc())

@@ -115,12 +115,26 @@ def search_agents(search: AgentSearchRequest, db: Session = Depends(get_db)):
     """
     query = db.query(Agent).filter(Agent.is_active == True)
 
-    # Filter by capabilities if provided
+    # Filter by capabilities if provided (case-insensitive)
     if search.capabilities:
-        # For SQLite with JSON, we'll do a simple text search
-        # In production with PostgreSQL, you'd use JSONB operators
-        for cap in search.capabilities:
-            query = query.filter(Agent.capabilities.contains(cap))
+        # Get all agents and filter in Python for case-insensitive matching
+        # SQLite JSON contains is case-sensitive, so we filter post-query
+        all_agents = query.all()
+
+        # Normalize search capabilities to lowercase
+        search_caps_lower = [cap.lower() for cap in search.capabilities]
+
+        # Filter agents that have matching capabilities (case-insensitive)
+        matching_agents = []
+        for agent in all_agents:
+            agent_caps_lower = [c.lower() for c in (agent.capabilities or [])]
+            # Check if any search capability matches
+            if any(search_cap in agent_caps_lower for search_cap in search_caps_lower):
+                matching_agents.append(agent)
+
+        # Sort by reputation and limit
+        matching_agents.sort(key=lambda a: a.reputation_score, reverse=True)
+        return matching_agents[:search.limit]
 
     # Order by reputation score descending
     query = query.order_by(Agent.reputation_score.desc())
