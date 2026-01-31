@@ -112,7 +112,9 @@
         let lastEventCount = 0;
 
         function formatTimestamp(isoString) {
-            const date = new Date(isoString);
+            // Fix: ensure timestamp is treated as UTC by adding 'Z' if missing
+            const utcString = isoString.endsWith('Z') ? isoString : isoString + 'Z';
+            const date = new Date(utcString);
             const now = new Date();
             const diff = now - date;
             const seconds = Math.floor(diff / 1000);

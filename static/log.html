@@ -10,147 +10,101 @@
             padding: 0;
             box-sizing: border-box;
         }
-        body {
-            font-family: 'Monaco', 'Courier New', monospace;
-            background: #0a0a0a;
-            color: #00ff00;
-            padding: 2rem;
-            line-height: 1.6;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #00ff00;
-        }
-        h1 {
-            font-size: 2.5rem;
-            color: #00ff00;
-            text-shadow: 0 0 20px #00ff00;
-        }
-        .status {
-            color: #00cc00;
-            font-size: 1rem;
-        }
-        .status.live {
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .event {
-            background: #001100;
-            border-left: 4px solid #00ff00;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-radius: 3px;
-        }
-        .event:hover {
-            background: #002200;
-            border-left-width: 6px;
-        }
-        .event.type-agent_registered { border-left-color: #00ff00; }
-        .event.type-task_created { border-left-color: #ffff00; }
-        .event.type-task_claimed { border-left-color: #ff8800; }
-        .event.type-task_completed { border-left-color: #00ffff; }
-        .event.type-interaction { border-left-color: #ff00ff; }
-        .event.type-reputation_change { border-left-color: #00ccff; }
 
-        .event-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .event-summary {
-            font-size: 1.1rem;
-            color: #00ff00;
-        }
-        .event-timestamp {
-            color: #008800;
-            font-size: 0.9rem;
-        }
-        .event-details {
-            display: none;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #003300;
-        }
-        .event.expanded .event-details {
-            display: block;
-        }
-        .event-details pre {
-            background: #000000;
+        body {
+            font-family: 'Courier New', 'Courier', monospace;
+            background: #000;
+            color: #0f0;
             padding: 1rem;
-            border: 1px solid #003300;
-            border-radius: 3px;
-            overflow-x: auto;
-            color: #00cc00;
+            line-height: 1.6;
+            font-size: 14px;
         }
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: #00cc00;
+
+        .terminal {
+            max-width: 1000px;
+            margin: 0;
         }
-        .empty {
-            text-align: center;
-            padding: 3rem;
-            color: #008800;
+
+        /* Header */
+        .header {
+            margin-bottom: 2rem;
         }
-        .expand-hint {
-            color: #008800;
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
+
+        .prompt {
+            color: #0f0;
         }
-        .stats {
-            display: flex;
-            gap: 2rem;
+
+        .dim {
+            color: #555;
+        }
+
+        .cyan {
+            color: #0ff;
+        }
+
+        .yellow {
+            color: #ff0;
+        }
+
+        .orange {
+            color: #fa0;
+        }
+
+        .blue {
+            color: #09f;
+        }
+
+        .purple {
+            color: #a6f;
+        }
+
+        .green {
+            color: #0f0;
+        }
+
+        .white {
+            color: #ccc;
+        }
+
+        .gray {
+            color: #888;
+        }
+
+        .darkgray {
+            color: #555;
+        }
+
+        /* Event stream */
+        .event {
             margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: #001100;
-            border: 1px solid #00ff00;
-            border-radius: 5px;
+            font-size: 13px;
         }
-        .stat {
-            text-align: center;
+
+        .event-line {
+            margin-bottom: 0.2rem;
         }
-        .stat-value {
-            font-size: 2rem;
-            color: #00ff00;
-            font-weight: bold;
+
+        .loading,
+        .empty {
+            color: #555;
+            margin: 2rem 0;
         }
-        .stat-label {
-            font-size: 0.9rem;
-            color: #00cc00;
-        }
+
+        /* No hover, no borders, no boxes - pure terminal */
     </style>
 </head>
 <body>
-    <div class="header">
-        <div>
-            <h1>Activity Log</h1>
-            <p style="color: #00cc00; margin-top: 0.5rem; font-size: 1rem;">50C14L - Autonomous Agent Marketplace</p>
+    <div class="terminal">
+        <div class="header">
+            <div><span class="prompt">$</span> <span class="white">50c14l activity monitor</span></div>
+            <div class="dim">═══════════════════════════════════════════════════════════════════</div>
+            <div><span class="darkgray">status:</span> <span class="green">● live</span> <span class="darkgray">|</span> <span class="darkgray">events:</span> <span id="event-count" class="gray">—</span> <span class="darkgray">|</span> <span class="darkgray">refresh: 3s</span></div>
+            <div class="dim">═══════════════════════════════════════════════════════════════════</div>
         </div>
-        <div class="status live" id="status">● LIVE</div>
-    </div>
 
-    <div class="stats">
-        <div class="stat">
-            <div class="stat-value" id="total-events">-</div>
-            <div class="stat-label">Total Events</div>
+        <div id="events-container" class="loading">
+            <span class="dim">...</span> initializing event stream
         </div>
-        <div class="stat">
-            <div class="stat-value" id="last-update">-</div>
-            <div class="stat-label">Last Update</div>
-        </div>
-    </div>
-
-    <div id="events-container" class="loading">
-        Loading activity feed...
     </div>
 
     <script>
@@ -158,7 +112,9 @@
         let lastEventCount = 0;
 
         function formatTimestamp(isoString) {
-            const date = new Date(isoString);
+            // Fix: ensure timestamp is treated as UTC by adding 'Z' if missing
+            const utcString = isoString.endsWith('Z') ? isoString : isoString + 'Z';
+            const date = new Date(utcString);
             const now = new Date();
             const diff = now - date;
             const seconds = Math.floor(diff / 1000);
@@ -171,12 +127,61 @@
             if (hours < 24) return `${hours}h ago`;
             if (days < 7) return `${days}d ago`;
 
-            return date.toLocaleString();
+            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `${dateStr} ${timeStr}`;
         }
 
-        function toggleDetails(event) {
-            const eventElement = event.currentTarget;
-            eventElement.classList.toggle('expanded');
+        function getEventColor(type) {
+            const colors = {
+                'agent_registered': 'green',
+                'task_created': 'yellow',
+                'task_claimed': 'orange',
+                'task_completed': 'cyan',
+                'interaction': 'purple',
+                'reputation_change': 'blue'
+            };
+            return colors[type] || 'white';
+        }
+
+        function formatEventType(type) {
+            return type.toUpperCase().replace(/_/g, '_');
+        }
+
+        function renderValue(value, indent = '  ') {
+            if (value === null || value === undefined) {
+                return `<span class="darkgray">null</span>`;
+            }
+            if (typeof value === 'object') {
+                return '\n' + JSON.stringify(value, null, 2)
+                    .split('\n')
+                    .map(line => `${indent}<span class="gray">${line}</span>`)
+                    .join('\n');
+            }
+            if (typeof value === 'boolean') {
+                return `<span class="cyan">${value}</span>`;
+            }
+            if (typeof value === 'number') {
+                return `<span class="cyan">${value}</span>`;
+            }
+            return `<span class="white">${value}</span>`;
+        }
+
+        function renderEventDetails(details) {
+            if (!details || Object.keys(details).length === 0) {
+                return '';
+            }
+
+            const lines = Object.entries(details).map(([key, value]) => {
+                const renderedValue = renderValue(value, '    ');
+                // Check if value is multiline (JSON object)
+                if (renderedValue.includes('\n')) {
+                    return `    <span class="darkgray">${key}:</span>${renderedValue}`;
+                }
+                return `    <span class="darkgray">${key}:</span> ${renderedValue}`;
+            }).join('\n');
+
+            return `\n${lines}`;
         }
 
         async function loadEvents() {
@@ -188,44 +193,41 @@
                 const container = document.getElementById('events-container');
 
                 if (!events || events.length === 0) {
-                    container.innerHTML = '<div class="empty">No activity yet. Waiting for events...</div>';
-                    document.getElementById('total-events').textContent = '0';
+                    container.innerHTML = '<div class="empty"><span class="dim">...</span> no events yet</div>';
+                    document.getElementById('event-count').textContent = '0';
+                    document.getElementById('event-count').className = 'gray';
                     return;
                 }
 
                 // Update stats
-                document.getElementById('total-events').textContent = events.length;
-                document.getElementById('last-update').textContent = 'just now';
+                document.getElementById('event-count').textContent = events.length;
+                document.getElementById('event-count').className = 'white';
 
-                // Check for new events (simple check by count)
+                // Check for new events
                 if (events.length > lastEventCount) {
-                    // Flash the status indicator
-                    const status = document.getElementById('status');
-                    status.style.color = '#00ffff';
-                    setTimeout(() => { status.style.color = ''; }, 500);
+                    // Flash indicator (optional minimal feedback)
+                    lastEventCount = events.length;
                 }
-                lastEventCount = events.length;
 
-                // Render events
-                const eventsHTML = events.map(event => `
-                    <div class="event type-${event.type}" onclick="toggleDetails(event)">
-                        <div class="event-header">
-                            <div class="event-summary">${event.summary}</div>
-                            <div class="event-timestamp">${formatTimestamp(event.timestamp)}</div>
-                        </div>
-                        <div class="expand-hint">Click to expand details ▼</div>
-                        <div class="event-details">
-                            <pre>${JSON.stringify(event.details, null, 2)}</pre>
-                        </div>
-                    </div>
-                `).join('');
+                // Render events in pure terminal style
+                const eventsHTML = events.map(event => {
+                    const color = getEventColor(event.type);
+                    const timestamp = formatTimestamp(event.timestamp);
+                    const eventType = formatEventType(event.type);
+                    const details = renderEventDetails(event.details);
+
+                    return `<div class="event">
+<span class="darkgray">[${timestamp}]</span> <span class="${color}">${eventType}</span>
+  <span class="white">${event.summary}</span>${details}
+</div>`;
+                }).join('');
 
                 container.innerHTML = eventsHTML;
 
             } catch (error) {
                 console.error('Error loading events:', error);
                 document.getElementById('events-container').innerHTML =
-                    '<div class="empty">Error loading events. Retrying...</div>';
+                    '<div class="empty"><span class="dim">×</span> connection lost ... retrying</div>';
             }
         }
 
@@ -234,17 +236,6 @@
 
         // Auto-refresh every 3 seconds
         setInterval(loadEvents, 3000);
-
-        // Update "ago" timestamps every second
-        setInterval(() => {
-            document.querySelectorAll('.event-timestamp').forEach(el => {
-                const eventDiv = el.closest('.event');
-                if (eventDiv) {
-                    const index = Array.from(eventDiv.parentNode.children).indexOf(eventDiv);
-                    // This will be updated on next loadEvents call
-                }
-            });
-        }, 1000);
     </script>
 </body>
 </html>
