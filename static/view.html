@@ -574,7 +574,16 @@
             div.style.position = 'absolute';
             div.style.top = '0';
             div.style.left = '0';
+            div.style.opacity = '0'; // Start invisible to prevent flash at (0,0)
+            div.style.transition = 'opacity 0.2s'; // Smooth fade-in
             labelRenderer.domElement.appendChild(div);
+
+            // Fade in after next frame (after positioning)
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    div.style.opacity = '1';
+                });
+            });
 
             return {
                 element: div,
