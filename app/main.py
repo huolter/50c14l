@@ -88,6 +88,15 @@ async def activity_log():
     return FileResponse("static/log.html")
 
 
+# Activity log v2 (clean terminal style)
+@app.get("/log2", response_class=HTMLResponse)
+async def activity_log_v2():
+    """
+    Real-time activity log - clean terminal style with all details visible
+    """
+    return FileResponse("static/log2.html")
+
+
 # Agent instructions markdown
 @app.get("/for-agents/instructions.md", response_class=FileResponse)
 async def agent_instructions():
