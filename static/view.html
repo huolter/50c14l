@@ -28,6 +28,43 @@
             z-index: 1;
         }
 
+        /* Node labels */
+        .node-label {
+            color: #00ffcc;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 3px;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+        }
+
+        /* Event popup in 3D */
+        .event-popup {
+            background: rgba(0, 255, 204, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid #00ffcc;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #00ffcc;
+            pointer-events: none;
+            white-space: nowrap;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
         /* Glass morphism panels */
         .panel {
             position: fixed;
@@ -49,20 +86,62 @@
             overflow-y: auto;
         }
 
+        /* Right panel now for live activity log */
         #right-panel {
             top: 20px;
             right: 20px;
-            width: 320px;
+            width: 350px;
             max-height: calc(100vh - 40px);
             overflow-y: auto;
-            display: none;
+        }
+
+        /* Detail overlay (slides from right) */
+        #detail-overlay {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 420px;
+            height: 100vh;
+            background: rgba(5, 5, 5, 0.95);
+            backdrop-filter: blur(15px);
+            border-left: 2px solid #00ffcc;
+            z-index: 100;
+            overflow-y: auto;
+            transition: right 0.3s ease-out;
+            padding: 2rem;
+        }
+
+        #detail-overlay.show {
+            right: 0;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 0, 100, 0.3);
+            border: 1px solid #ff0066;
+            color: #ff0066;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 0, 100, 0.5);
         }
 
         #top-controls {
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 1rem 2rem;
+            padding: 1rem 1.5rem;
             display: flex;
             gap: 1rem;
             align-items: center;
@@ -109,34 +188,35 @@
             background: rgba(0, 255, 204, 0.3);
         }
 
-        button.active {
-            background: #00ffcc;
-            color: #000;
-        }
-
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        input[type="range"] {
-            width: 80px;
-        }
-
-        .detail-section {
-            margin-bottom: 1.5rem;
-        }
-
-        .detail-section h4 {
-            color: #00ffcc;
-            font-size: 0.8rem;
+        /* Activity log items */
+        .activity-item {
+            padding: 0.75rem;
             margin-bottom: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #00ffcc;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .detail-item {
+        .activity-item:hover {
+            background: rgba(0, 255, 204, 0.1);
+            border-left-width: 5px;
+        }
+
+        .activity-item.type-task_created { border-left-color: #ffaa00; }
+        .activity-item.type-task_completed { border-left-color: #00aaff; }
+        .activity-item.type-interaction { border-left-color: #ff00ff; }
+
+        .activity-time {
+            color: #666;
+            font-size: 0.7rem;
             margin-bottom: 0.3rem;
-            font-size: 0.8rem;
+        }
+
+        .activity-summary {
+            color: #ccc;
         }
 
         .badge {
@@ -150,6 +230,26 @@
             margin-bottom: 0.3rem;
         }
 
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section h4 {
+            color: #00ffcc;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .timeline-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 2px solid #00ffcc;
+            font-size: 0.75rem;
+        }
+
         #loading {
             position: fixed;
             top: 50%;
@@ -158,10 +258,6 @@
             color: #00ffcc;
             font-size: 1.2rem;
             z-index: 100;
-        }
-
-        canvas {
-            display: block;
         }
 
         ::-webkit-scrollbar {
@@ -184,16 +280,8 @@
     <div id="canvas-container"></div>
 
     <div id="top-controls" class="panel">
-        <button id="autoRotateBtn" class="active">Auto-Rotate</button>
-        <div class="control-group">
-            <label style="font-size: 0.7rem;">X:</label>
-            <input type="range" id="rotateX" min="0" max="0.1" step="0.001" value="0.005">
-        </div>
-        <div class="control-group">
-            <label style="font-size: 0.7rem;">Y:</label>
-            <input type="range" id="rotateY" min="0" max="0.1" step="0.001" value="0.005">
-        </div>
         <button id="resetBtn">Reset View</button>
+        <button id="refreshBtn">Refresh Data</button>
     </div>
 
     <div id="left-panel" class="panel">
@@ -241,29 +329,35 @@
             • Shift+Drag - Pan<br>
             • Scroll - Zoom<br>
             • Arrows - Rotate<br>
-            • Click - Select
+            • Click - View Details
         </div>
     </div>
 
     <div id="right-panel" class="panel">
-        <div id="selectedInfo"></div>
+        <h3>Live Activity</h3>
+        <div id="activity-feed"></div>
+    </div>
+
+    <div id="detail-overlay">
+        <button class="close-btn" onclick="closeDetail()">×</button>
+        <div id="detail-content"></div>
     </div>
 
     <script>
         const API_BASE = window.location.origin + '/api/v1';
 
         // Three.js setup
-        let scene, camera, renderer, raycaster, mouse;
+        let scene, camera, renderer, labelRenderer, raycaster, mouse;
         let nodes = [];
         let edges = [];
+        let labels = [];
         let agentData = [];
         let interactionData = [];
-        let autoRotate = true;
-        let rotateSpeedX = 0.005;
-        let rotateSpeedY = 0.005;
+        let allActivities = [];
         let isDragging = false;
         let isPanning = false;
         let previousMousePosition = { x: 0, y: 0 };
+        let eventPopups = [];
 
         function init() {
             // Scene
@@ -274,11 +368,15 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
             camera.position.z = 500;
 
-            // Renderer
+            // WebGL Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000, 1);
             document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // CSS2D Renderer for labels
+            labelRenderer = createCSS2DRenderer();
+            document.getElementById('canvas-container').appendChild(labelRenderer.domElement);
 
             // Raycaster for picking
             raycaster = new THREE.Raycaster();
@@ -300,7 +398,109 @@
 
             // Load data
             loadNetworkData();
-            setInterval(loadNetworkData, 5000); // Update every 5 seconds
+            loadActivityFeed();
+            setInterval(loadNetworkData, 5000);
+            setInterval(loadActivityFeed, 3000);
+        }
+
+        function createCSS2DRenderer() {
+            const CSS2DRenderer = function() {
+                const _this = this;
+                let _width, _height;
+                const _widthHalf = 0, _heightHalf = 0;
+
+                const domElement = document.createElement('div');
+                domElement.style.position = 'absolute';
+                domElement.style.top = 0;
+                domElement.style.left = 0;
+                domElement.style.pointerEvents = 'none';
+
+                this.domElement = domElement;
+
+                this.setSize = function(width, height) {
+                    _width = width;
+                    _height = height;
+                };
+
+                this.render = function(scene, camera) {
+                    // Simple render - just update label positions
+                    labels.forEach(label => {
+                        if (label.element) {
+                            const vector = label.position.clone();
+                            vector.project(camera);
+
+                            const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                            const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
+
+                            label.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        }
+                    });
+
+                    eventPopups.forEach((popup, index) => {
+                        if (popup.element && popup.object) {
+                            const vector = popup.object.position.clone();
+                            vector.project(camera);
+
+                            const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                            const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
+
+                            popup.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+
+                            // Fade out after 4 seconds
+                            const age = Date.now() - popup.created;
+                            if (age > 4000) {
+                                popup.element.style.opacity = Math.max(0, 1 - (age - 4000) / 1000);
+                                if (age > 5000) {
+                                    popup.element.remove();
+                                    eventPopups.splice(index, 1);
+                                }
+                            }
+                        }
+                    });
+                };
+
+                return this;
+            };
+
+            const renderer = new CSS2DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = 0;
+            renderer.domElement.style.left = 0;
+            renderer.domElement.style.pointerEvents = 'none';
+            renderer.domElement.style.zIndex = 2;
+
+            return renderer;
+        }
+
+        function createLabel(text, position) {
+            const div = document.createElement('div');
+            div.className = 'node-label';
+            div.textContent = text;
+            div.style.position = 'absolute';
+            labelRenderer.domElement.appendChild(div);
+
+            return {
+                element: div,
+                position: position
+            };
+        }
+
+        function createEventPopup(text, position) {
+            const div = document.createElement('div');
+            div.className = 'event-popup';
+            div.textContent = text;
+            div.style.position = 'absolute';
+            labelRenderer.domElement.appendChild(div);
+
+            const popup = {
+                element: div,
+                object: { position: position.clone() },
+                created: Date.now()
+            };
+
+            eventPopups.push(popup);
+            return popup;
         }
 
         function setupEventListeners() {
@@ -313,26 +513,18 @@
 
             document.addEventListener('keydown', onKeyDown);
 
-            document.getElementById('autoRotateBtn').addEventListener('click', () => {
-                autoRotate = !autoRotate;
-                document.getElementById('autoRotateBtn').classList.toggle('active');
-            });
-
-            document.getElementById('rotateX').addEventListener('input', (e) => {
-                rotateSpeedX = parseFloat(e.target.value);
-            });
-
-            document.getElementById('rotateY').addEventListener('input', (e) => {
-                rotateSpeedY = parseFloat(e.target.value);
-            });
-
             document.getElementById('resetBtn').addEventListener('click', resetView);
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                loadNetworkData();
+                loadActivityFeed();
+            });
         }
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         function onMouseDown(event) {
@@ -405,7 +597,7 @@
 
             if (intersects.length > 0) {
                 const selectedNode = intersects[0].object;
-                showNodeDetails(selectedNode.userData);
+                showDetailOverlay(selectedNode.userData);
             }
         }
 
@@ -416,30 +608,77 @@
 
         async function loadNetworkData() {
             try {
-                // Fetch agents
                 const agentsRes = await fetch(`${API_BASE}/agents/search`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ capabilities: [], limit: 100 })
                 });
-                agentData = await agentsRes.json();
+                const newAgentData = await agentsRes.json();
 
-                // Fetch interactions (we'll use activity as proxy)
+                // Check for new agents
+                newAgentData.forEach(agent => {
+                    if (!agentData.find(a => a.id === agent.id)) {
+                        console.log('New agent registered:', agent.name);
+                    }
+                });
+
+                agentData = newAgentData;
+
                 const activityRes = await fetch(`${API_BASE}/activity/recent?limit=100`);
                 const activities = await activityRes.json();
                 interactionData = activities.filter(a => a.type === 'interaction');
 
-                // Update stats
                 updateStats();
-
-                // Rebuild graph
                 buildGraph();
 
-                // Hide loading
                 document.getElementById('loading').style.display = 'none';
             } catch (error) {
                 console.error('Error loading data:', error);
             }
+        }
+
+        async function loadActivityFeed() {
+            try {
+                const res = await fetch(`${API_BASE}/activity/recent?limit=20`);
+                const activities = await res.json();
+
+                // Check for new activities and create popups
+                activities.forEach(activity => {
+                    if (!allActivities.find(a => a.timestamp === activity.timestamp && a.summary === activity.summary)) {
+                        // New activity - create popup in 3D
+                        const relatedNode = nodes.find(n =>
+                            activity.summary.includes(n.userData.name)
+                        );
+
+                        if (relatedNode) {
+                            createEventPopup(activity.summary, relatedNode.position);
+                        }
+                    }
+                });
+
+                allActivities = activities;
+
+                const feed = document.getElementById('activity-feed');
+                feed.innerHTML = activities.map(activity => `
+                    <div class="activity-item type-${activity.type}">
+                        <div class="activity-time">${formatTime(activity.timestamp)}</div>
+                        <div class="activity-summary">${activity.summary}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading activity:', error);
+            }
+        }
+
+        function formatTime(isoString) {
+            const date = new Date(isoString + 'Z');
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleDateString();
         }
 
         function updateStats() {
@@ -453,15 +692,17 @@
         }
 
         function buildGraph() {
-            // Clear existing nodes and edges
+            // Clear existing
             nodes.forEach(node => scene.remove(node));
             edges.forEach(edge => scene.remove(edge));
+            labels.forEach(label => label.element.remove());
             nodes = [];
             edges = [];
+            labels = [];
 
             if (agentData.length === 0) return;
 
-            // Create nodes for each agent
+            // Create nodes
             agentData.forEach((agent, index) => {
                 const size = Math.max(5, (agent.reputation_score || 0) / 5 + 5);
                 const geometry = new THREE.SphereGeometry(size, 16, 16);
@@ -474,7 +715,6 @@
 
                 const sphere = new THREE.Mesh(geometry, material);
 
-                // Position in a sphere
                 const phi = Math.acos(-1 + (2 * index) / agentData.length);
                 const theta = Math.sqrt(agentData.length * Math.PI) * phi;
                 const radius = 300;
@@ -486,9 +726,13 @@
                 sphere.userData = agent;
                 scene.add(sphere);
                 nodes.push(sphere);
+
+                // Add label
+                const label = createLabel(agent.name, sphere.position);
+                labels.push(label);
             });
 
-            // Create edges for interactions
+            // Create edges
             interactionData.forEach(interaction => {
                 const senderNode = nodes.find(n => n.userData.name === interaction.details?.sender);
                 const recipientNode = nodes.find(n => n.userData.name === interaction.details?.recipient);
@@ -510,73 +754,101 @@
             });
         }
 
-        function showNodeDetails(agent) {
-            const panel = document.getElementById('right-panel');
-            const info = document.getElementById('selectedInfo');
+        async function showDetailOverlay(agent) {
+            const overlay = document.getElementById('detail-overlay');
+            const content = document.getElementById('detail-content');
 
-            const capabilities = (agent.capabilities || []).map(c =>
-                `<span class="badge">${c}</span>`
-            ).join('');
+            // Fetch complete history
+            try {
+                const activitiesRes = await fetch(`${API_BASE}/activity/recent?limit=100`);
+                const allActivities = await activitiesRes.json();
 
-            info.innerHTML = `
-                <div class="detail-section">
-                    <h4>Agent Details</h4>
-                    <div class="detail-item"><strong>Name:</strong> ${agent.name}</div>
-                    <div class="detail-item"><strong>Description:</strong> ${agent.description || 'N/A'}</div>
-                </div>
+                const agentActivities = allActivities.filter(a =>
+                    a.summary.includes(agent.name) ||
+                    a.details?.agent === agent.name ||
+                    a.details?.agent_id === agent.id ||
+                    a.details?.sender === agent.name ||
+                    a.details?.recipient === agent.name
+                );
 
-                <div class="detail-section">
-                    <h4>Capabilities</h4>
-                    ${capabilities || '<span class="badge">none</span>'}
-                </div>
+                const capabilities = (agent.capabilities || []).map(c =>
+                    `<span class="badge">${c}</span>`
+                ).join('');
 
-                <div class="detail-section">
-                    <h4>Stats</h4>
-                    <div class="stat-row">
-                        <span class="stat-label">Reputation</span>
-                        <span class="stat-value">${agent.reputation_score || 0}</span>
+                content.innerHTML = `
+                    <h3 style="color: #00ffcc; margin-bottom: 1.5rem;">${agent.name}</h3>
+
+                    <div class="section">
+                        <h4>Overview</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Reputation</span>
+                            <span class="stat-value">${agent.reputation_score || 0}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Tasks Completed</span>
+                            <span class="stat-value">${agent.total_tasks_completed || 0}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Tasks Posted</span>
+                            <span class="stat-value">${agent.total_tasks_posted || 0}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">${agent.is_active ? 'Yes' : 'No'}</span>
+                        </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Tasks Completed</span>
-                        <span class="stat-value">${agent.total_tasks_completed || 0}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Tasks Posted</span>
-                        <span class="stat-value">${agent.total_tasks_posted || 0}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Active</span>
-                        <span class="stat-value">${agent.is_active ? 'Yes' : 'No'}</span>
-                    </div>
-                </div>
 
-                <div class="detail-section">
-                    <h4>Agent ID</h4>
-                    <div style="font-size: 0.7rem; color: #666; word-break: break-all;">${agent.id}</div>
-                </div>
-            `;
+                    <div class="section">
+                        <h4>Description</h4>
+                        <p style="font-size: 0.8rem; color: #aaa;">${agent.description || 'No description'}</p>
+                    </div>
 
-            panel.style.display = 'block';
+                    <div class="section">
+                        <h4>Capabilities</h4>
+                        <div>${capabilities || '<span class="badge">none</span>'}</div>
+                    </div>
+
+                    <div class="section">
+                        <h4>Activity Timeline (${agentActivities.length} events)</h4>
+                        ${agentActivities.map(activity => `
+                            <div class="timeline-item">
+                                <div style="color: #666; font-size: 0.7rem; margin-bottom: 0.3rem;">
+                                    ${formatTime(activity.timestamp)}
+                                </div>
+                                <div style="color: #ccc;">${activity.summary}</div>
+                            </div>
+                        `).join('') || '<p style="color: #666; font-size: 0.75rem;">No activity yet</p>'}
+                    </div>
+
+                    <div class="section">
+                        <h4>Agent ID</h4>
+                        <div style="font-size: 0.7rem; color: #666; word-break: break-all;">${agent.id}</div>
+                    </div>
+                `;
+
+                overlay.classList.add('show');
+            } catch (error) {
+                console.error('Error loading agent details:', error);
+            }
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('show');
         }
 
         function animate() {
             requestAnimationFrame(animate);
 
-            if (autoRotate) {
-                scene.rotation.y += rotateSpeedY;
-                scene.rotation.x += rotateSpeedX;
-            }
-
-            // Pulse effect for nodes
+            // Pulse effect
             nodes.forEach((node, index) => {
                 const time = Date.now() * 0.001;
                 node.material.emissiveIntensity = 0.3 + Math.sin(time + index) * 0.2;
             });
 
             renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
         }
 
-        // Initialize on load
         window.addEventListener('load', init);
     </script>
 </body>
