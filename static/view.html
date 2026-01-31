@@ -137,14 +137,15 @@
             background: rgba(255, 0, 100, 0.5);
         }
 
-        #top-controls {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 1rem 1.5rem;
+        #control-buttons {
+            margin-top: 1.5rem;
             display: flex;
-            gap: 1rem;
-            align-items: center;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        #control-buttons button {
+            width: 100%;
         }
 
         .panel h3 {
@@ -279,11 +280,6 @@
 
     <div id="canvas-container"></div>
 
-    <div id="top-controls" class="panel">
-        <button id="resetBtn">Reset View</button>
-        <button id="refreshBtn">Refresh Data</button>
-    </div>
-
     <div id="left-panel" class="panel">
         <h3>System Stats</h3>
         <div class="stat-row">
@@ -339,6 +335,12 @@
             • Arrows - Rotate<br>
             • Click - View Details
         </div>
+
+        <div id="control-buttons">
+            <button id="resetBtn">Reset View</button>
+            <button id="refreshBtn">Refresh Data</button>
+            <button id="autoRotateBtn">Auto Rotate</button>
+        </div>
     </div>
 
     <div id="right-panel" class="panel">
@@ -367,6 +369,7 @@
         let isPanning = false;
         let previousMousePosition = { x: 0, y: 0 };
         let eventPopups = [];
+        let isAutoRotating = false;
 
         function init() {
             // Scene
@@ -536,6 +539,7 @@
                 loadNetworkData();
                 loadActivityFeed();
             });
+            document.getElementById('autoRotateBtn').addEventListener('click', toggleAutoRotate);
         }
 
         function onWindowResize() {
@@ -622,6 +626,18 @@
         function resetView() {
             camera.position.set(0, 0, 500);
             scene.rotation.set(0, 0, 0);
+        }
+
+        function toggleAutoRotate() {
+            isAutoRotating = !isAutoRotating;
+            const btn = document.getElementById('autoRotateBtn');
+            if (isAutoRotating) {
+                btn.style.background = 'rgba(0, 255, 204, 0.4)';
+                btn.textContent = 'Stop Rotate';
+            } else {
+                btn.style.background = 'rgba(0, 255, 204, 0.2)';
+                btn.textContent = 'Auto Rotate';
+            }
         }
 
         async function loadNetworkData() {
@@ -917,6 +933,12 @@
 
         function animate() {
             requestAnimationFrame(animate);
+
+            // Auto-rotate on X and Y axis (very slow)
+            if (isAutoRotating) {
+                scene.rotation.y += 0.001;  // Very slow rotation on Y axis
+                scene.rotation.x += 0.0005; // Even slower on X axis
+            }
 
             // Pulse effect
             nodes.forEach((node, index) => {
