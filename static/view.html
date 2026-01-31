@@ -317,6 +317,14 @@
                 <div style="width: 30px; height: 2px; background: #ff00ff;"></div>
                 <span style="font-size: 0.75rem;">Interactions</span>
             </div>
+            <div style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 30px; height: 2px; background: #00ff00;"></div>
+                <span style="font-size: 0.75rem;">Completed Tasks</span>
+            </div>
+            <div style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 30px; height: 2px; background: #ffff00;"></div>
+                <span style="font-size: 0.75rem;">In Progress Tasks</span>
+            </div>
             <div style="font-size: 0.7rem; color: #666; margin-top: 1rem;">
                 Size = Reputation<br>
                 Brightness = Activity
@@ -353,6 +361,7 @@
         let labels = [];
         let agentData = [];
         let interactionData = [];
+        let taskData = [];
         let allActivities = [];
         let isDragging = false;
         let isPanning = false;
@@ -632,6 +641,11 @@
                 const activities = await activityRes.json();
                 interactionData = activities.filter(a => a.type === 'interaction');
 
+                // Fetch tasks (completed and in_progress to show connections)
+                const tasksRes = await fetch(`${API_BASE}/tasks?limit=100`);
+                const allTasks = await tasksRes.json();
+                taskData = allTasks.filter(t => t.status === 'completed' || t.status === 'in_progress');
+
                 updateStats();
                 buildGraph();
 
@@ -687,6 +701,7 @@
 
         function updateStats() {
             document.getElementById('totalAgents').textContent = agentData.length;
+            document.getElementById('totalTasks').textContent = taskData.length;
             document.getElementById('totalInteractions').textContent = interactionData.length;
 
             const totalRep = agentData.reduce((sum, a) => sum + (a.reputation_score || 0), 0);
@@ -736,7 +751,7 @@
                 labels.push(label);
             });
 
-            // Create edges
+            // Create edges for interactions
             interactionData.forEach(interaction => {
                 const senderNode = nodes.find(n => n.userData.name === interaction.details?.sender);
                 const recipientNode = nodes.find(n => n.userData.name === interaction.details?.recipient);
@@ -754,6 +769,50 @@
                     const line = new THREE.Line(geometry, material);
                     scene.add(line);
                     edges.push(line);
+                }
+            });
+
+            // Create edges for tasks (requester -> claimer)
+            taskData.forEach(task => {
+                const requesterNode = nodes.find(n => n.userData.id === task.requester_id);
+                const claimerNode = nodes.find(n => n.userData.id === task.claimer_id);
+
+                if (requesterNode && claimerNode) {
+                    const geometry = new THREE.BufferGeometry().setFromPoints([
+                        requesterNode.position,
+                        claimerNode.position
+                    ]);
+
+                    // Different color based on task status
+                    const color = task.status === 'completed' ? 0x00ff00 : 0xffff00;
+                    const material = new THREE.LineBasicMaterial({
+                        color: color,
+                        opacity: 0.8,
+                        transparent: true,
+                        linewidth: 2
+                    });
+                    const line = new THREE.Line(geometry, material);
+                    line.userData = { type: 'task', task: task };
+                    scene.add(line);
+                    edges.push(line);
+
+                    // Add label to task line at midpoint
+                    const midpoint = new THREE.Vector3(
+                        (requesterNode.position.x + claimerNode.position.x) / 2,
+                        (requesterNode.position.y + claimerNode.position.y) / 2,
+                        (requesterNode.position.z + claimerNode.position.z) / 2
+                    );
+
+                    // Create a dummy object at midpoint for label positioning
+                    const labelAnchor = new THREE.Object3D();
+                    labelAnchor.position.copy(midpoint);
+                    scene.add(labelAnchor);
+
+                    const taskLabel = createLabel(
+                        `${task.status === 'completed' ? '✓' : '⋯'} ${task.title}`,
+                        labelAnchor
+                    );
+                    labels.push(taskLabel);
                 }
             });
         }
