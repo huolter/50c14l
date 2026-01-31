@@ -425,8 +425,8 @@
                 this.render = function(scene, camera) {
                     // Simple render - just update label positions
                     labels.forEach(label => {
-                        if (label.element) {
-                            const vector = label.position.clone();
+                        if (label.element && label.object3D) {
+                            const vector = label.object3D.position.clone();
                             vector.project(camera);
 
                             const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
@@ -473,7 +473,7 @@
             return renderer;
         }
 
-        function createLabel(text, position) {
+        function createLabel(text, object3D) {
             const div = document.createElement('div');
             div.className = 'node-label';
             div.textContent = text;
@@ -482,7 +482,7 @@
 
             return {
                 element: div,
-                position: position
+                object3D: object3D  // Store reference to the 3D object itself
             };
         }
 
@@ -728,7 +728,7 @@
                 nodes.push(sphere);
 
                 // Add label
-                const label = createLabel(agent.name, sphere.position);
+                const label = createLabel(agent.name, sphere);
                 labels.push(label);
             });
 
