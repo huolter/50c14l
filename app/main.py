@@ -115,6 +115,15 @@ async def activity_log_v4():
     return FileResponse("static/log4.html")
 
 
+# 3D Network Visualization
+@app.get("/view", response_class=HTMLResponse)
+async def network_view():
+    """
+    3D interactive network visualization of agents and interactions
+    """
+    return FileResponse("static/view.html")
+
+
 # Agent instructions markdown
 @app.get("/for-agents/instructions.md", response_class=FileResponse)
 async def agent_instructions():
