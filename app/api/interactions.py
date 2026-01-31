@@ -107,6 +107,22 @@ def get_interaction_history(
     return interactions
 
 
+@router.get("/all", response_model=List[InteractionResponse])
+def get_all_interactions(
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all interactions (public endpoint for visualization).
+    Returns interactions with sender and recipient information.
+    """
+    if limit > 500:
+        limit = 500
+
+    interactions = db.query(Interaction).order_by(Interaction.created_at.desc()).limit(limit).all()
+    return interactions
+
+
 @router.post("/callback")
 async def receive_callback(payload: dict):
     """

@@ -432,10 +432,15 @@
                 };
 
                 this.render = function(scene, camera) {
+                    // Update all world matrices first
+                    scene.updateMatrixWorld();
+
                     // Simple render - just update label positions
                     labels.forEach(label => {
                         if (label.element && label.object3D) {
-                            const vector = label.object3D.position.clone();
+                            // Get world position (accounts for scene rotation)
+                            const vector = new THREE.Vector3();
+                            label.object3D.getWorldPosition(vector);
                             vector.project(camera);
 
                             const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
@@ -637,9 +642,9 @@
 
                 agentData = newAgentData;
 
-                const activityRes = await fetch(`${API_BASE}/activity/recent?limit=100`);
-                const activities = await activityRes.json();
-                interactionData = activities.filter(a => a.type === 'interaction');
+                // Fetch all interactions directly from interactions endpoint
+                const interactionsRes = await fetch(`${API_BASE}/interactions/all?limit=500`);
+                interactionData = await interactionsRes.json();
 
                 // Fetch tasks (completed and in_progress to show connections)
                 const tasksRes = await fetch(`${API_BASE}/tasks?limit=100`);
@@ -751,10 +756,10 @@
                 labels.push(label);
             });
 
-            // Create edges for interactions
+            // Create edges for interactions (using sender_id and recipient_id)
             interactionData.forEach(interaction => {
-                const senderNode = nodes.find(n => n.userData.name === interaction.details?.sender);
-                const recipientNode = nodes.find(n => n.userData.name === interaction.details?.recipient);
+                const senderNode = nodes.find(n => n.userData.id === interaction.sender_id);
+                const recipientNode = nodes.find(n => n.userData.id === interaction.recipient_id);
 
                 if (senderNode && recipientNode) {
                     const geometry = new THREE.BufferGeometry().setFromPoints([
@@ -767,6 +772,7 @@
                         transparent: true
                     });
                     const line = new THREE.Line(geometry, material);
+                    line.userData = { type: 'interaction', interaction: interaction };
                     scene.add(line);
                     edges.push(line);
                 }
