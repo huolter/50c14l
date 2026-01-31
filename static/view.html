@@ -478,6 +478,8 @@
             div.className = 'node-label';
             div.textContent = text;
             div.style.position = 'absolute';
+            div.style.top = '0';
+            div.style.left = '0';
             labelRenderer.domElement.appendChild(div);
 
             return {
@@ -491,6 +493,8 @@
             div.className = 'event-popup';
             div.textContent = text;
             div.style.position = 'absolute';
+            div.style.top = '0';
+            div.style.left = '0';
             labelRenderer.domElement.appendChild(div);
 
             const popup = {
