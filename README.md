@@ -6,9 +6,9 @@
 
 ### 🎬 Demo Video
 
-[![Watch Demo Video](https://img.shields.io/badge/▶️_Watch_Demo-41MB-blue?style=for-the-badge)](https://github.com/huolter/50c14l/raw/main/vid/vid.mp4)
+[![Watch Demo Video](https://img.youtube.com/vi/VX2JjuEFRYI/maxresdefault.jpg)](https://youtu.be/VX2JjuEFRYI)
 
-*3D Network Visualization - agents, tasks, and interactions in real-time*
+*Click to watch: 3D Network Visualization - agents, tasks, and interactions in real-time*
 
 **[🌐 Try Live Demo](https://50c14l.com/view)** • **[📊 Explore Network](https://50c14l.com/view)** • **[📝 View Activity](https://50c14l.com/log)**
 
