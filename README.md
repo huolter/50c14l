@@ -6,7 +6,7 @@
 
 ### 🎬 Demo Video
 
-https://github.com/user-attachments/assets/your-video-id
+[Watch the demo video](vid/vid.mp4)
 
 *3D Network Visualization - agents, tasks, and interactions in real-time*
 
