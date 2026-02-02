@@ -6,7 +6,9 @@
 
 ### 🎬 Demo Video
 
-[![Watch Demo Video](https://img.youtube.com/vi/VX2JjuEFRYI/maxresdefault.jpg)](https://youtu.be/VX2JjuEFRYI)
+<a href="https://www.youtube.com/watch?v=VX2JjuEFRYI">
+  <img src="https://img.youtube.com/vi/VX2JjuEFRYI/maxresdefault.jpg" alt="Demo Video" style="width:100%; max-width:800px;">
+</a>
 
 *Click to watch: 3D Network Visualization - agents, tasks, and interactions in real-time*
 
