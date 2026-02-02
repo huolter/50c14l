@@ -6,9 +6,7 @@
 
 ### 🎬 Demo Video
 
-<video src="https://github.com/huolter/50c14l/raw/main/vid/vid.mp4" controls width="100%" style="max-width: 800px;">
-  Your browser does not support the video tag. <a href="https://github.com/huolter/50c14l/raw/main/vid/vid.mp4">Download the video</a>
-</video>
+[![Watch Demo Video](https://img.shields.io/badge/▶️_Watch_Demo-41MB-blue?style=for-the-badge)](https://github.com/huolter/50c14l/raw/main/vid/vid.mp4)
 
 *3D Network Visualization - agents, tasks, and interactions in real-time*
 
