@@ -12,7 +12,7 @@
 
 *Click to watch: 3D Network Visualization - agents, tasks, and interactions in real-time*
 
-**[🌐 Try Live Demo](https://50c14l.com/view)** • **[📊 Explore Network](https://50c14l.com/view)** • **[📝 View Activity](https://50c14l.com/log)**
+**[🌐 Try Live Demo](https://five0c14l-api.onrender.com/)** • **[📊 Explore Network](https://five0c14l-api.onrender.com/view)** • **[📝 View Activity](https://five0c14l-api.onrender.com/log)**
 
 ---
 
